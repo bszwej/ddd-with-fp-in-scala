@@ -14,15 +14,16 @@ import eu.timepit.refined.types.string.NonEmptyString
 
 object example {
 
-  /** DTOs. They can be used to e.g. accept a request, or an even in the infrastructure layer of our application.
+  /** DTOs.
+    * They can be used to e.g. model a raw request or an even in the infrastructure layer of the application.
     */
   case class OrderCreationRequest(customerId: String, amount: BigDecimal, currency: String) {
     val toDomain: EitherNel[ValidationError, Order] =
       Order.create(customerId: String, amount: BigDecimal, currency: String)
   }
 
-  /** Domain Model. Here's the core domain model of our application. This where we want to use more types.
-    * This is where we do validation.
+  /** Domain Model.
+    * The business logic belongs here. This where we want to use more types, perform validation and check for invariants etc.
     */
   sealed trait ValidationError
   case object EmptyCustomerId extends ValidationError
@@ -69,8 +70,10 @@ object example {
       ).parMapN(Order(_, _))
   }
 
-  /** HTTP controller. This can be for example tapir's server logic, http4s or akka routing DSL.
-    * This is where we convert DTOs to the core domain model.
+  /** HTTP controller.
+    * This can be for example tapir's server logic, http4s or akka routing DSL.
+    * This is where we convert DTOs to the core domain model along with executing the validation logic.
+    * We know exactly what to do with validation errors here.
     */
   object OrderHttpController {
     def create(order: OrderCreationRequest): IO[HttpResponse] = IO {
@@ -83,8 +86,9 @@ object example {
     case class HttpResponse(errorCode: Int, payload: String)
   }
 
-  /** Order domain service. Contains the main business logic and models business processes like Order Creation.
-    *  It should accept only valid entities.
+  /** Order domain service.
+    * Contains the main business logic and models business processes like Order creation.
+    * It should accept only valid entities.
     */
   object OrderService {
     def create(order: Order): IO[Either[OrderCreationError, Unit]] = {
